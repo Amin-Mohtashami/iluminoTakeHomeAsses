@@ -15,6 +15,8 @@
 #include <set>
 using namespace std;
 
+// starting optimized trie
+
 void GetInputFileStream(ifstream* inputfile, string filename) {
     // use pointer to open file
     inputfile->open(filename);
