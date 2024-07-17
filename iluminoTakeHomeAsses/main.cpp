@@ -16,6 +16,21 @@
 using namespace std;
 
 // starting optimized trie
+class Trie {
+    unordered_map<char, Trie*> mp = unordered_map<char, Trie*>();
+public:
+    int isWord = false;
+    
+    Trie* AddNextLetter(char i) {
+        Trie* nt = new Trie();
+        mp.insert_or_assign(tolower(i), nt);
+        return nt;
+    }
+    
+    Trie* GetNextTrie(char i) {
+        return mp.count(i) ? mp[tolower(i)] : NULL;
+    }
+};
 
 void GetInputFileStream(ifstream* inputfile, string filename) {
     // use pointer to open file
@@ -31,15 +46,21 @@ void GetInputFileStream(ifstream* inputfile, string filename) {
     }
 }
 
-void ReadInputPredefindFile(string input_file, unordered_map<string, int>* mp) {
+void ReadInputPredefindFile(string input_file, Trie* trie, set<string>* predefinedset ) {
     // open predefined file
     ifstream inputFile;
     GetInputFileStream(&inputFile, input_file);
     
     // add predefined words to inmemory map and set default value to 0
+    Trie* head_trie = trie;
     string predefinedword;
     while (getline(inputFile, predefinedword)) {
-        mp->insert_or_assign(predefinedword, 0);
+        predefinedset->insert(predefinedword);
+        for (char i : predefinedword) {
+            head_trie = head_trie->AddNextLetter(i);
+        }
+        head_trie->isWord = true;
+        head_trie = trie;
     }
 }
 
@@ -61,7 +82,7 @@ bool MatchesPredefinedWord(string predefinedword, string line, int position_inli
     return true;
 }
 
-void ReadInputFileAndUpdateCount(string input_file, unordered_map<string, int>* mp, set<string>* predefined_set) {
+void ReadInputFileAndUpdateCount(string input_file, Trie* trie, unordered_map<string, int>* mp, set<string>* predefined_set) {
     // open file we want to read
     ifstream inputFile;
     GetInputFileStream(&inputFile, input_file);
@@ -69,7 +90,25 @@ void ReadInputFileAndUpdateCount(string input_file, unordered_map<string, int>* 
     // get one line at a time from file and check against predefined words
     string line;
     while (getline(inputFile, line)) {
+        Trie* head_trie = trie;
         // for each value in predefined word, run find all matches in line
+        for (int i = 0; i < line.size(); i++) {
+            if (head_trie->GetNextTrie(tolower(line[i])) != NULL) {
+                int j = i;
+                cout << line[i] << ", " << line[j+1] << endl;
+                while (head_trie && !head_trie->isWord ) {
+                    cout << line[j] << endl;
+                    head_trie = head_trie->GetNextTrie(tolower(line[j]));
+                    j++;
+                }
+                if (head_trie && head_trie->isWord && line.size() > j && !isalpha(line[j])) {
+                    string word = line.substr(i, j-1);
+                    mp->insert_or_assign(word, mp->at(word)+1);
+                }
+                head_trie = trie;
+            }
+        }
+        /*
         for (string word_to_match : *predefined_set) {
             
             for (int i = 0; i < line.size(); i++) {
@@ -79,6 +118,7 @@ void ReadInputFileAndUpdateCount(string input_file, unordered_map<string, int>* 
                 }
             }
         }
+         */
     }
     
 }
@@ -95,23 +135,28 @@ int main(int argc, const char * argv[]) {
     // file names and empty map
     string predefind_filename = "PredefinedWords";
     string filename = "File";
-    unordered_map<string, int> predefined_word_map = unordered_map<string, int>();
+    Trie predefined_word_trie = Trie();
     
     // console friendly print
     int space_for_predefined_word_column = 0;
     
     // read file and update in memory
-    ReadInputPredefindFile(predefind_filename, &predefined_word_map);
     set<string> predefinedset = set<string>();
+    ReadInputPredefindFile(predefind_filename, &predefined_word_trie, &predefinedset);
     
+    unordered_map<string, int>predefined_word_map = unordered_map<string, int>();
     // add predefined words to set. using set as key values to update mapped results.
-    for (pair<string, int> i : predefined_word_map) {
-        predefinedset.insert(i.first);
-        space_for_predefined_word_column = max(space_for_predefined_word_column, (int) i.first.size());
+    for (string i : predefinedset) {
+        string a = "";
+        for (char j : i) {
+            a += tolower(j);
+        }
+        predefined_word_map.insert_or_assign(a, 0);
+        space_for_predefined_word_column = max(space_for_predefined_word_column, (int) i.size());
     }
     
     // read file and update match counts
-    ReadInputFileAndUpdateCount(filename, &predefined_word_map, &predefinedset);
+    ReadInputFileAndUpdateCount(filename, &predefined_word_trie, &predefined_word_map, &predefinedset);
     
     // values for console output
     string predefined_word = "Predefined word";
