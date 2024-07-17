@@ -64,6 +64,8 @@ void ReadInputPredefindFile(string input_file, Trie* trie, set<string>* predefin
     }
 }
 
+// brute force approach
+// deprecated
 bool MatchesPredefinedWord(string predefinedword, string line, int position_inline) {
     // if current position being checked has less characters than predefined word there can be no match.
     // if character after word match
@@ -95,19 +97,23 @@ void ReadInputFileAndUpdateCount(string input_file, Trie* trie, unordered_map<st
         for (int i = 0; i < line.size(); i++) {
             if (head_trie->GetNextTrie(tolower(line[i])) != NULL) {
                 int j = i;
-                cout << line[i] << ", " << line[j+1] << endl;
                 while (head_trie && !head_trie->isWord ) {
-                    cout << line[j] << endl;
                     head_trie = head_trie->GetNextTrie(tolower(line[j]));
                     j++;
                 }
-                if (head_trie && head_trie->isWord && line.size() > j && !isalpha(line[j])) {
-                    string word = line.substr(i, j-1);
-                    mp->insert_or_assign(word, mp->at(word)+1);
+                if (head_trie && head_trie->isWord && i-1 >= 0 && !isalpha(line[i-1]) && line.size() > j && !isalpha(line[j])) {
+                    
+                    int itemp = i;
+                    string mkey = "";
+                    while (itemp < j) {
+                        mkey += tolower(line[itemp++]);
+                    }
+                    mp->insert_or_assign(mkey, mp->at(mkey)+1);
                 }
                 head_trie = trie;
             }
         }
+        
         /*
         for (string word_to_match : *predefined_set) {
             
@@ -145,13 +151,15 @@ int main(int argc, const char * argv[]) {
     ReadInputPredefindFile(predefind_filename, &predefined_word_trie, &predefinedset);
     
     unordered_map<string, int>predefined_word_map = unordered_map<string, int>();
+    unordered_map<string, string>predefined_word_map2 = unordered_map<string, string>();
     // add predefined words to set. using set as key values to update mapped results.
     for (string i : predefinedset) {
-        string a = "";
+        string lowercase_i = "";
         for (char j : i) {
-            a += tolower(j);
+            lowercase_i += tolower(j);
         }
-        predefined_word_map.insert_or_assign(a, 0);
+        predefined_word_map.insert_or_assign(lowercase_i, 0);
+        predefined_word_map2.insert_or_assign(lowercase_i, i);
         space_for_predefined_word_column = max(space_for_predefined_word_column, (int) i.size());
     }
     
@@ -170,7 +178,7 @@ int main(int argc, const char * argv[]) {
     
     for (auto i : predefined_word_map) {
         // print rows for console output with file matches
-        PrintPredefinedWordCol(i.first, space_for_predefined_word_column);
+        PrintPredefinedWordCol(predefined_word_map2[i.first], space_for_predefined_word_column);
         cout << col_space << i.second << endl;
     }
     
